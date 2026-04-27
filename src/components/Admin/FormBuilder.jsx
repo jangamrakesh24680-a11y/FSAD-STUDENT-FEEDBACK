@@ -1,55 +1,84 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
+import api from '../../utils/api';
 
 const FormBuilder = () => {
     const [forms, setForms] = useState([]);
-    const [newForm, setNewForm] = useState({ title: '', questions: [] });
+    const [courses, setCourses] = useState([]);
+    const [newForm, setNewForm] = useState({ title: '', courseId: '', questions: [] });
     const [currentQuestion, setCurrentQuestion] = useState('');
 
     useEffect(() => {
-        const savedForms = JSON.parse(localStorage.getItem('feedbackForms') || '[]');
-        setForms(savedForms);
+        fetchForms();
+        fetchCourses();
     }, []);
 
-    const saveForms = (updatedForms) => {
-        setForms(updatedForms);
-        localStorage.setItem('feedbackForms', JSON.stringify(updatedForms));
+    const fetchForms = async () => {
+        try {
+            const res = await api.get('/admin/forms');
+            setForms(res.data);
+        } catch (err) {
+            console.error("Failed to fetch forms", err);
+        }
+    };
+
+    const fetchCourses = async () => {
+        try {
+            const res = await api.get('/admin/courses');
+            setCourses(res.data);
+        } catch (err) {
+            console.error("Failed to fetch courses", err);
+        }
     };
 
     const addQuestion = () => {
         if (currentQuestion.trim()) {
             setNewForm({
                 ...newForm,
-                questions: [...newForm.questions, { id: Date.now(), text: currentQuestion }]
+                questions: [...newForm.questions, { content: currentQuestion, type: 'RATING' }]
             });
             setCurrentQuestion('');
         }
     };
 
-    const removeQuestion = (id) => {
+    const removeQuestion = (idxToRemove) => {
         setNewForm({
             ...newForm,
-            questions: newForm.questions.filter(q => q.id !== id)
+            questions: newForm.questions.filter((_, idx) => idx !== idxToRemove)
         });
     };
 
-    const createForm = () => {
-        if (newForm.title.trim() && newForm.questions.length > 0) {
-            const updatedForms = [...forms, { ...newForm, id: Date.now(), active: true }];
-            saveForms(updatedForms);
-            setNewForm({ title: '', questions: [] });
+    const createForm = async () => {
+        if (newForm.title.trim() && newForm.questions.length > 0 && newForm.courseId) {
+            try {
+                await api.post('/admin/forms', newForm);
+                setNewForm({ title: '', courseId: '', questions: [] });
+                fetchForms();
+            } catch (err) {
+                console.error("Failed to create form", err);
+            }
         }
-    };
-
-    const deleteForm = (id) => {
-        const updatedForms = forms.filter(f => f.id !== id);
-        saveForms(updatedForms);
     };
 
     return (
         <div className="grid grid-cols-2 gap-2rem">
             <div className="glass-card">
                 <h3>Create New Form</h3>
+                
+                <div className="input-group">
+                    <label>Select Course</label>
+                    <select 
+                        value={newForm.courseId} 
+                        onChange={(e) => setNewForm({...newForm, courseId: e.target.value})}
+                        className="modern-input"
+                    >
+                        <option value="">-- Select a Course --</option>
+                        {courses.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="input-group">
                     <label>Form Title</label>
                     <input
@@ -77,9 +106,9 @@ const FormBuilder = () => {
 
                 <div className="questions-list">
                     {newForm.questions.map((q, idx) => (
-                        <div key={q.id} className="question-item glass">
-                            <span>{idx + 1}. {q.text}</span>
-                            <Trash2 size={16} className="text-error cursor-pointer" onClick={() => removeQuestion(q.id)} />
+                        <div key={idx} className="question-item glass">
+                            <span>{idx + 1}. {q.content}</span>
+                            <Trash2 size={16} className="text-error cursor-pointer" onClick={() => removeQuestion(idx)} />
                         </div>
                     ))}
                 </div>
@@ -87,7 +116,7 @@ const FormBuilder = () => {
                 <button
                     className="btn btn-primary w-full mt-2rem"
                     onClick={createForm}
-                    disabled={!newForm.title || newForm.questions.length === 0}
+                    disabled={!newForm.title || !newForm.courseId || newForm.questions.length === 0}
                 >
                     Publish Form
                 </button>
@@ -106,11 +135,10 @@ const FormBuilder = () => {
                             <div key={form.id} className="form-card glass">
                                 <div className="form-info">
                                     <h4>{form.title}</h4>
-                                    <p>{form.questions.length} Questions</p>
+                                    <p>{form.course?.name || 'Unknown Course'}</p>
                                 </div>
                                 <div className="form-actions">
                                     <span className="badge-success"><CheckCircle2 size={14} /> Active</span>
-                                    <Trash2 size={18} className="text-error cursor-pointer" onClick={() => deleteForm(form.id)} />
                                 </div>
                             </div>
                         ))
@@ -171,6 +199,9 @@ const FormBuilder = () => {
           padding: 3rem;
           color: var(--text-muted);
         }
+        .grid { display: grid; }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .gap-2rem { gap: 2rem; }
       `}</style>
         </div>
     );

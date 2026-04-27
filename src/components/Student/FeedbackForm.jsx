@@ -1,37 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Send, CheckCircle, ClipboardList } from 'lucide-react';
+import api from '../../utils/api';
+import { AuthContext } from '../../context/AuthContext';
 
 const StudentFeedback = () => {
     const [forms, setForms] = useState([]);
     const [selectedForm, setSelectedForm] = useState(null);
     const [responses, setResponses] = useState({});
     const [submitted, setSubmitted] = useState(false);
+    const { user } = useContext(AuthContext);
 
     useEffect(() => {
-        const savedForms = JSON.parse(localStorage.getItem('feedbackForms') || '[]');
-        setForms(savedForms);
+        fetchForms();
     }, []);
 
-    const handleRating = (questionId, rating) => {
-        setResponses({ ...responses, [questionId]: rating });
+    const fetchForms = async () => {
+        try {
+            const res = await api.get('/student/forms');
+            setForms(res.data);
+        } catch (err) {
+            console.error("Failed to fetch forms", err);
+        }
     };
 
-    const handleSubmit = () => {
-        if (Object.keys(responses).length === selectedForm.questions.length) {
-            const allResponses = JSON.parse(localStorage.getItem('feedbackResponses') || '[]');
-            const newResponse = {
-                formId: selectedForm.id,
-                timestamp: Date.now(),
-                data: responses
-            };
+    const handleRating = (questionId, rating) => {
+        setResponses({ ...responses, [questionId]: rating.toString() });
+    };
 
-            localStorage.setItem('feedbackResponses', JSON.stringify([...allResponses, newResponse]));
-            setSubmitted(true);
-            setTimeout(() => {
-                setSubmitted(false);
-                setSelectedForm(null);
-                setResponses({});
-            }, 3000);
+    const handleSubmit = async () => {
+        if (Object.keys(responses).length === selectedForm.questions?.length) {
+            try {
+                const answerArray = Object.keys(responses).map(qId => ({
+                    questionId: parseInt(qId),
+                    valueText: responses[qId]
+                }));
+
+                await api.post('/student/responses', {
+                    formId: selectedForm.id,
+                    studentId: user?.id,
+                    answers: answerArray
+                });
+
+                setSubmitted(true);
+                setTimeout(() => {
+                    setSubmitted(false);
+                    setSelectedForm(null);
+                    setResponses({});
+                }, 3000);
+            } catch (err) {
+                console.error("Failed to submit feedback", err);
+            }
         }
     };
 
@@ -57,7 +75,7 @@ const StudentFeedback = () => {
                     forms.map(form => (
                         <div key={form.id} className="glass-card hover-glow" onClick={() => setSelectedForm(form)}>
                             <h4>{form.title}</h4>
-                            <p className="text-muted small">{form.questions.length} Questions</p>
+                            <p className="text-muted small">{form.questions?.length || 0} Questions</p>
                             <button className="btn btn-secondary w-full mt-1">Start Evaluation</button>
                         </div>
                     ))
@@ -74,14 +92,14 @@ const StudentFeedback = () => {
             </div>
 
             <div className="questions-container">
-                {selectedForm.questions.map((q, idx) => (
+                {selectedForm.questions && selectedForm.questions.map((q, idx) => (
                     <div key={q.id} className="question-block glass mb-1">
-                        <p className="mb-1">{idx + 1}. {q.text}</p>
+                        <p className="mb-1">{idx + 1}. {q.content}</p>
                         <div className="rating-options">
                             {[1, 2, 3, 4, 5].map(rating => (
                                 <button
                                     key={rating}
-                                    className={`rating-btn ${responses[q.id] === rating ? 'selected' : ''}`}
+                                    className={`rating-btn ${responses[q.id] === rating.toString() ? 'selected' : ''}`}
                                     onClick={() => handleRating(q.id, rating)}
                                 >
                                     {rating}
@@ -99,7 +117,7 @@ const StudentFeedback = () => {
             <button
                 className="btn btn-primary w-full mt-2"
                 onClick={handleSubmit}
-                disabled={Object.keys(responses).length !== selectedForm.questions.length}
+                disabled={!selectedForm.questions || Object.keys(responses).length !== selectedForm.questions.length}
             >
                 <Send size={18} className="mr-1" /> Submit Feedback
             </button>
@@ -118,6 +136,9 @@ const StudentFeedback = () => {
         .text-success { color: #22c55e; }
         .small { font-size: 0.85rem; }
         .hover-glow:hover { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); cursor: pointer; }
+        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .col-span-3 { grid-column: span 3 / span 3; }
+        .gap-1\\.5rem { gap: 1.5rem; }
         
         .question-block { padding: 1.5rem; }
         .rating-options { display: flex; justify-content: space-between; gap: 0.5rem; }
@@ -142,6 +163,8 @@ const StudentFeedback = () => {
           color: var(--text-muted);
         }
         .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }
       `}</style>
         </div>
     );

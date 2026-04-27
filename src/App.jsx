@@ -1,59 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { UserCircle, ShieldCheck, GraduationCap, LayoutDashboard, ClipboardList, BarChart3, LogOut, BookOpen } from 'lucide-react';
+import React, { useContext } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { UserCircle, LayoutDashboard, ClipboardList, BarChart3, LogOut } from 'lucide-react';
 import './App.css';
 
+import { AuthContext } from './context/AuthContext';
 import AdminDashboard from './components/Admin/Dashboard';
 import FormBuilder from './components/Admin/FormBuilder';
 import StudentFeedback from './components/Student/FeedbackForm';
 import StudentResults from './components/Student/ResultsView';
-import InstructorDashboard from './components/Instructor/Dashboard';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
-import { seedData } from './utils/seedData';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [view, setView] = useState('login'); // 'login', 'register', 'app'
-  const [activeTab, setActiveTab] = useState('dashboard');
-
-  // Initialize data and check session
-  useEffect(() => {
-    // Seed data if first time
-    if (!localStorage.getItem('feedbackUsers')) {
-      seedData();
-    }
-
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-      setView('app');
-    }
-  }, []);
-
-  const handleLogin = (userData) => {
-    setUser(userData);
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-    setView('app');
-    setActiveTab('dashboard');
-  };
-
-  const handleRegister = (userData) => {
-    handleLogin(userData);
-  };
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
-    setView('login');
+    logout();
+    navigate('/login');
   };
 
-  if (view === 'login') {
-    return <Login onLogin={handleLogin} onSwitchToRegister={() => setView('register')} />;
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
   }
 
-  if (view === 'register') {
-    return <Register onRegister={handleRegister} onSwitchToLogin={() => setView('login')} />;
-  }
+  const activeTab = location.pathname.split('/').pop() || 'dashboard';
 
   return (
     <div className="app-layout">
@@ -63,45 +41,34 @@ function App() {
         </div>
 
         <div className="sidebar-links">
-          {user.role === 'admin' && (
+          {(user.role === 'admin' || user.role === 'ADMIN') && (
             <>
               <button
                 className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
-                onClick={() => setActiveTab('dashboard')}
+                onClick={() => navigate('/admin/dashboard')}
               >
                 <LayoutDashboard size={20} /> Dashboard
               </button>
               <button
                 className={`nav-link ${activeTab === 'forms' ? 'active' : ''}`}
-                onClick={() => setActiveTab('forms')}
+                onClick={() => navigate('/admin/forms')}
               >
                 <ClipboardList size={20} /> Form Builder
               </button>
             </>
           )}
 
-          {user.role === 'instructor' && (
-            <>
-              <button
-                className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
-                onClick={() => setActiveTab('dashboard')}
-              >
-                <LayoutDashboard size={20} /> Dashboard
-              </button>
-            </>
-          )}
-
-          {user.role === 'student' && (
+          {(user.role === 'student' || user.role === 'STUDENT') && (
             <>
               <button
                 className={`nav-link ${activeTab === 'feedback' ? 'active' : ''}`}
-                onClick={() => setActiveTab('feedback')}
+                onClick={() => navigate('/student/feedback')}
               >
                 <ClipboardList size={20} /> My Feedback
               </button>
               <button
                 className={`nav-link ${activeTab === 'results' ? 'active' : ''}`}
-                onClick={() => setActiveTab('results')}
+                onClick={() => navigate('/student/results')}
               >
                 <BarChart3 size={20} /> View Results
               </button>
@@ -113,7 +80,7 @@ function App() {
           <div className="user-info">
             <UserCircle size={24} />
             <div className="user-details">
-              <span className="user-name">{user.fullName}</span>
+              <span className="user-name">{user.name}</span>
               <span className="user-role">{user.role}</span>
             </div>
           </div>
@@ -132,15 +99,22 @@ function App() {
         </header>
 
         <section className="main-view animate-fade-in">
-          {user.role === 'admin' && (
-            activeTab === 'dashboard' ? <AdminDashboard /> : <FormBuilder />
-          )}
-          {user.role === 'instructor' && (
-            <InstructorDashboard user={user} />
-          )}
-          {user.role === 'student' && (
-            activeTab === 'feedback' ? <StudentFeedback /> : <StudentResults />
-          )}
+          <Routes>
+            {(user.role === 'admin' || user.role === 'ADMIN') && (
+              <>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/forms" element={<FormBuilder />} />
+                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+              </>
+            )}
+            {(user.role === 'student' || user.role === 'STUDENT') && (
+              <>
+                <Route path="/student/feedback" element={<StudentFeedback />} />
+                <Route path="/student/results" element={<StudentResults />} />
+                <Route path="*" element={<Navigate to="/student/feedback" replace />} />
+              </>
+            )}
+          </Routes>
         </section>
       </main>
 

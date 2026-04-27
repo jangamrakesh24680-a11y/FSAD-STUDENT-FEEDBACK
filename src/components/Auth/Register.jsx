@@ -1,27 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { User, Lock, UserPlus, Mail, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 
-const Register = ({ onRegister, onSwitchToLogin }) => {
+const Register = () => {
     const [formData, setFormData] = useState({
-        username: '',
+        email: '',
         fullName: '',
         password: '',
         role: 'student'
     });
     const [error, setError] = useState('');
+    const { register } = useContext(AuthContext);
+    const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const users = JSON.parse(localStorage.getItem('feedbackUsers') || '[]');
-
-        if (users.find(u => u.username === formData.username)) {
-            setError('Username already exists');
-            return;
+        setError('');
+        try {
+            const user = await register(formData.fullName, formData.email, formData.password, formData.role);
+            if (user.role === 'ADMIN' || user.role === 'admin') {
+                navigate('/admin/dashboard');
+            } else {
+                navigate('/student/feedback');
+            }
+        } catch (err) {
+            setError(err);
         }
-
-        const updatedUsers = [...users, formData];
-        localStorage.setItem('feedbackUsers', JSON.stringify(updatedUsers));
-        onRegister(formData);
     };
 
     return (
@@ -32,7 +37,7 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
 
                 <form onSubmit={handleSubmit} className="auth-form">
                     <div className="input-field mb-1">
-                        <Mail size={18} className="field-icon" />
+                        <User size={18} className="field-icon" />
                         <input
                             type="text"
                             placeholder="Full Name"
@@ -43,12 +48,12 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
                     </div>
 
                     <div className="input-field mb-1">
-                        <User size={18} className="field-icon" />
+                        <Mail size={18} className="field-icon" />
                         <input
-                            type="text"
-                            placeholder="Username"
-                            value={formData.username}
-                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                            type="email"
+                            placeholder="Email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             required
                         />
                     </div>
@@ -75,15 +80,15 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
                             />
                             Student
                         </label>
-                        <label className={`role-option ${formData.role === 'instructor' ? 'active' : ''}`}>
+                        <label className={`role-option ${formData.role === 'admin' ? 'active' : ''}`}>
                             <input
                                 type="radio"
                                 name="role"
-                                value="instructor"
-                                checked={formData.role === 'instructor'}
+                                value="admin"
+                                checked={formData.role === 'admin'}
                                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                             />
-                            Instructor
+                            Admin
                         </label>
                     </div>
 
@@ -95,7 +100,7 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
                 </form>
 
                 <p className="mt-2 small text-muted">
-                    Already have an account? <span className="link-text" onClick={onSwitchToLogin}>Login here</span>
+                    Already have an account? <span className="link-text" onClick={() => navigate('/login')}>Login here</span>
                 </p>
             </div>
 

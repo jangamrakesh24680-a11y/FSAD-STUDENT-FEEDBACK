@@ -1,20 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { User, Lock, LogIn } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 
-const Login = ({ onLogin, onSwitchToRegister }) => {
-    const [username, setUsername] = useState('');
+const Login = () => {
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const { login } = useContext(AuthContext);
+    const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const users = JSON.parse(localStorage.getItem('feedbackUsers') || '[]');
-        const user = users.find(u => u.username === username && u.password === password);
-
-        if (user) {
-            onLogin(user);
-        } else {
-            setError('Invalid username or password');
+        setError('');
+        try {
+            const user = await login(email, password);
+            if (user.role === 'ADMIN' || user.role === 'admin') {
+                navigate('/admin/dashboard');
+            } else {
+                navigate('/student/feedback');
+            }
+        } catch (err) {
+            setError(err);
         }
     };
 
@@ -29,9 +36,9 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
                         <User size={18} className="field-icon" />
                         <input
                             type="text"
-                            placeholder="Username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             required
                         />
                     </div>
@@ -55,7 +62,7 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
                 </form>
 
                 <p className="mt-2 small text-muted">
-                    Don't have an account? <span className="link-text" onClick={onSwitchToRegister}>Register here</span>
+                    Don't have an account? <span className="link-text" onClick={() => navigate('/register')}>Register here</span>
                 </p>
             </div>
 
