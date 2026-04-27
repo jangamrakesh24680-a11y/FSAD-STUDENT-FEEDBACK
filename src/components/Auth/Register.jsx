@@ -30,107 +30,88 @@ const Register = () => {
     };
 
     return (
-        <div className="login-container animate-fade-in">
-            <div className="glass-card login-card">
-                <h2 className="gradient-text mb-2">Create Account</h2>
-                <p className="text-muted mb-2">Join the EduFeedback community</p>
+        <div className="auth-container">
+            <div className="auth-card">
+                <div className="auth-header">
+                    <h1>Create Account</h1>
+                    <p>Join the EduFeedback community</p>
+                </div>
 
-                <form onSubmit={handleSubmit} className="auth-form">
-                    <div className="input-field mb-1">
-                        <User size={18} className="field-icon" />
-                        <input
-                            type="text"
-                            placeholder="Full Name"
-                            value={formData.fullName}
-                            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                            required
-                        />
-                    </div>
+                {error && <div className="alert alert-error">{error}</div>}
 
-                    <div className="input-field mb-1">
-                        <Mail size={18} className="field-icon" />
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            required
-                        />
-                    </div>
-
-                    <div className="input-field mb-1">
-                        <Lock size={18} className="field-icon" />
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            required
-                        />
-                    </div>
-
-                    <div className="role-toggle mb-2">
-                        <label className={`role-option ${formData.role === 'student' ? 'active' : ''}`}>
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <div className="input-wrapper">
+                            <User className="input-icon" size={20} />
                             <input
-                                type="radio"
-                                name="role"
-                                value="student"
-                                checked={formData.role === 'student'}
-                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                type="text"
+                                className="auth-input"
+                                placeholder="Full Name"
+                                value={formData.fullName}
+                                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                required
                             />
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <div className="input-wrapper">
+                            <Mail className="input-icon" size={20} />
+                            <input
+                                type="email"
+                                className="auth-input"
+                                placeholder="Email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <div className="input-wrapper">
+                            <Lock className="input-icon" size={20} />
+                            <input
+                                type="password"
+                                className="auth-input"
+                                placeholder="Password"
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="role-selector">
+                        <button
+                            type="button"
+                            className={`role-btn ${formData.role === 'student' ? 'active' : ''}`}
+                            onClick={() => setFormData({ ...formData, role: 'student' })}
+                        >
                             Student
-                        </label>
-                        <label className={`role-option ${formData.role === 'admin' ? 'active' : ''}`}>
-                            <input
-                                type="radio"
-                                name="role"
-                                value="admin"
-                                checked={formData.role === 'admin'}
-                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                            />
+                        </button>
+                        <button
+                            type="button"
+                            className={`role-btn ${formData.role === 'admin' ? 'active' : ''}`}
+                            onClick={() => setFormData({ ...formData, role: 'admin' })}
+                        >
                             Admin
-                        </label>
+                        </button>
                     </div>
 
-                    {error && <p className="text-error mb-1">{error}</p>}
-
-                    <button type="submit" className="btn btn-primary w-full">
-                        <UserPlus size={18} className="mr-1" /> Register
+                    <button type="submit" className="btn-primary">
+                        <UserPlus size={20} /> Register
                     </button>
                 </form>
 
-                <p className="mt-2 small text-muted">
-                    Already have an account? <span className="link-text" onClick={() => navigate('/login')}>Login here</span>
-                </p>
+                <div className="auth-footer">
+                    <p>Already have an account? 
+                        <a href="#" className="auth-link" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>
+                            Login here
+                        </a>
+                    </p>
+                </div>
             </div>
-
-            <style>{`
-        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; width: 100%; }
-        .login-card { width: 100%; max-width: 400px; padding: 3rem; text-align: center; }
-        .role-toggle {
-          display: flex;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          padding: 0.25rem;
-          margin-top: 1rem;
-        }
-        .role-option {
-          flex: 1;
-          padding: 0.75rem;
-          cursor: pointer;
-          border-radius: 10px;
-          transition: var(--transition);
-          font-weight: 600;
-          color: var(--text-muted);
-          text-align: center;
-        }
-        .role-option.active {
-          background: var(--primary);
-          color: white;
-        }
-        .role-option input { display: none; }
-      `}</style>
         </div>
     );
 };
