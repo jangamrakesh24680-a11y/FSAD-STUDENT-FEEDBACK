@@ -11,6 +11,7 @@ import com.feedback.backend.security.JwtUtils;
 import com.feedback.backend.security.UserDetailsImpl;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -86,6 +87,26 @@ public class AuthController {
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new MessageResponse("Error: Unauthorized"));
+        }
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        String role = userDetails.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
+        JwtResponse userResponse = new JwtResponse(null,
+                userDetails.getId(),
+                userDetails.getName(),
+                userDetails.getEmail(),
+                role);
+
+        return ResponseEntity.ok(userResponse);
+    }
+
     @Autowired
     private com.feedback.backend.repository.CourseRepository courseRepository;
 
